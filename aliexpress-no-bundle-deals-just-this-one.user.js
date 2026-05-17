@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name         Skip AliExpress Bundle Deals: Just This One!
 // @namespace    https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one
-// @version      1.0.0
+// @version      1.0.5
+// @license      MIT
+// @homepageURL  https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one
+// @supportURL   https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/issues
 // @description  Skip those bundles and buy just the product you want on AliExpress.
 // @match        https://*.aliexpress.com/*
 // @match        https://aliexpress.com/*
@@ -10,34 +13,62 @@
 // @match        https://*.aliexpress.ru/*
 // @match        https://aliexpress.ru/*
 // @grant        GM_openInTab
+// @noframes
 // @run-at       document-idle
 // ==/UserScript==
 
 (function () {
   'use strict';
 
-  const PRODUCT_ID_RE = /(.*aliexpress\.(?:com|us|ru)).*productIds=(\d+)/;
+  const ALIEXPRESS_ORIGIN_RE = /^(https?:)?\/\/[^/]*aliexpress\.(?:com|us|ru)/;
+  const PRODUCT_ID_RE = /[?&]productIds=(\d+)/;
+  const PRODUCT_URL_ORIGIN = 'https://www.aliexpress.com';
+  const PROCESSED_ATTR = 'data-jto-processed';
 
   // Inject styles once
   document.head.appendChild(Object.assign(document.createElement('style'), {
     textContent: `
-      .card-out-wrapper:hover .jto-link span,
-      :hover>**>* .jto-link { color: #007700; border-radius:4px; }
-      .jto-link { order:5; margin-top:4px; display:inline-block; }
-      .jto-link>span { color:#dd22cc; font-weight:bold; font-size:1.08rem !important; }
-      .jto-link:hover { text-decoration:underline; }
+      .jto-link {
+        color:#dd22cc !important;
+        cursor:pointer;
+        display:block;
+        font-size:1.08rem !important;
+        font-weight:bold;
+        line-height:1.2;
+        margin-top:4px;
+        max-width:100%;
+        overflow:hidden;
+        text-decoration:none !important;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      .jto-bundle-row .jto-link {
+        display:inline-block;
+        flex:1;
+        font-size:14px !important;
+        line-height:18px;
+        margin-left:6px;
+        margin-top:0;
+        min-width:0;
+      }
+      .jto-link:hover { color:#007700 !important; text-decoration:underline !important; }
+      .jto-link>span { color:inherit !important; font:inherit !important; }
     `
   }));
 
   // Click handler factory
   function openProduct(url) {
-    GM_openInTab(url, { active: true, insert: true });
+    if (typeof GM_openInTab === 'function') {
+      GM_openInTab(url, { active: true, insert: true });
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
   }
 
-  // Build the "Just this one!" link
+  // Build the "Just this one!" link control.
   function makeLink(url) {
     const a = document.createElement('a');
-    a.href = 'javascript:void(0)';
+    a.href = url;
     a.className = 'jto-link';
     a.innerHTML = '<span>✳️ Just this one!</span>';
     a.addEventListener('click', function (e) {
@@ -45,42 +76,78 @@
       e.preventDefault();
       openProduct(url);
     });
+    a.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.stopPropagation();
+      e.preventDefault();
+      openProduct(url);
+    });
     return a;
+  }
+
+  function getProductUrlFromBundleUrl(url) {
+    const origin = url.match(ALIEXPRESS_ORIGIN_RE)?.[0];
+    const productId = url.match(PRODUCT_ID_RE)?.[1];
+
+    if (!origin || !productId) return null;
+
+    return makeProductUrl(productId, origin);
+  }
+
+  function makeProductUrl(productId, origin = PRODUCT_URL_ORIGIN) {
+    return `${origin}/item/${productId}.html`;
+  }
+
+  function markProcessed(el) {
+    el.setAttribute(PROCESSED_ATTR, 'true');
+  }
+
+  function isProcessed(el) {
+    return el.getAttribute(PROCESSED_ATTR) === 'true';
   }
 
   // Query shorthand
   const $ = (s, root = document) => root.querySelectorAll(s);
-  const marked = el => el.classList.contains('jto-link');
 
   // 1. Search results – BundleDeals links
   function processSearchResults() {
-    for (const anchor of $('[href*="BundleDeals"]')) {
-      const icon = anchor.querySelector('.comet-icon');
-      const target = icon ? icon.parentNode : anchor.children[anchor.children.length - 1];
-      if (!target || marked(target)) continue;
+    for (const anchor of $('a[href*="BundleDeals"][href*="productIds="]')) {
+      const productUrl = getProductUrlFromBundleUrl(anchor.href);
+      if (!productUrl) continue;
 
-      const m = anchor.href.match(PRODUCT_ID_RE);
-      if (!m) continue;
+      const card = anchor.closest('.card-out-wrapper') || anchor.parentElement;
+      if (!card || card.querySelector('.jto-link')) continue;
 
-      target.classList.add('jto-link');
-      target.after(makeLink(`${m[1]}/item/${m[2]}.html`));
+      const bundleRow = anchor.querySelector('.comet-icon')?.parentElement;
+      if (bundleRow) {
+        bundleRow.classList.add('jto-bundle-row');
+        bundleRow.appendChild(makeLink(productUrl));
+      } else {
+        anchor.after(makeLink(productUrl));
+      }
     }
   }
 
   // 2. Wishlist items
   function processWishlist() {
-    for (const entry of $("[class|='editItemWrap'] div[class|='nnEntry']")) {
-      if (marked(entry) || entry.parentNode?.classList.contains('jto-link')) continue;
+    if (!location.pathname.includes('/p/wish-manage/')) return;
 
-      const card = entry.closest("[class|='productCardV2--productCard']");
-      const dataId = card?.querySelector("[class|='operator--operator']")?.getAttribute('data-id');
-      if (!dataId) continue;
+    for (const card of $("[class|='productCardV2--productCard']")) {
+      if (card.querySelector('.jto-link')) continue;
 
-      const productId = dataId.substring(9);
+      const dataId = card.querySelector("[class|='operator--operator']")?.getAttribute('data-id');
+      const productId = dataId?.match(/^operator_(\d+)/)?.[1];
       if (!productId) continue;
 
-      entry.classList.add('jto-link');
-      entry.after(makeLink(`https://www.aliexpress.com/item/${productId}.html`));
+      const target =
+        card.querySelector("[class|='cartIcon--shoppingCartPC']") ||
+        card.querySelector("[class|='productCardV2--bottom']");
+
+      if (target) {
+        target.after(makeLink(makeProductUrl(productId)));
+      } else {
+        card.appendChild(makeLink(makeProductUrl(productId)));
+      }
     }
   }
 
@@ -89,7 +156,7 @@
     if (!location.pathname.includes('/BundleDeals2')) return;
 
     for (const container of $('.AIC-ATM-container')) {
-      if (marked(container)) continue;
+      if (isProcessed(container)) continue;
       const parentId = container.parentNode?.id;
       if (!parentId?.includes('info_container.')) continue;
       if (container.parentElement.querySelector('.jto-link')) continue;
@@ -97,8 +164,8 @@
       const productId = parentId.split('info_container.')[1];
       if (!productId) continue;
 
-      container.classList.add('jto-link');
-      container.parentElement.appendChild(makeLink(`https://www.aliexpress.com/item/${productId}.html`));
+      markProcessed(container);
+      container.parentElement.appendChild(makeLink(makeProductUrl(productId)));
     }
   }
 
@@ -112,12 +179,17 @@
   scan();
 
   let pending = null;
+
+  function flushScan() {
+    pending = null;
+    scan();
+  }
+
+  function scheduleScan() {
+    if (!pending) pending = requestAnimationFrame(flushScan);
+  }
+
   new MutationObserver(mutations => {
-    for (const m of mutations) {
-      if (m.addedNodes.length) {
-        if (!pending) pending = requestAnimationFrame(() => { scan(); pending = null; });
-        return;
-      }
-    }
+    if (mutations.some(m => m.addedNodes.length)) scheduleScan();
   }).observe(document.body, { childList: true, subtree: true });
 })();
