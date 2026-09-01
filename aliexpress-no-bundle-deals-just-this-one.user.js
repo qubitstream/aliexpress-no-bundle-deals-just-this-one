@@ -169,7 +169,7 @@
     }
   }
 
-  // Scan once, then watch for DOM changes via MutationObserver
+  // Scan immediately, on DOM additions, and periodically for attribute-only updates.
   function scan() {
     processSearchResults();
     processWishlist();
@@ -192,4 +192,6 @@
   new MutationObserver(mutations => {
     if (mutations.some(m => m.addedNodes.length)) scheduleScan();
   }).observe(document.body, { childList: true, subtree: true });
+
+  setInterval(scan, 1000);
 })();
