@@ -23,12 +23,12 @@
   const ALIEXPRESS_ORIGIN_RE = /^(https?:)?\/\/[^/]*aliexpress\.(?:com|us|ru)/;
   const PRODUCT_ID_RE = /[?&]productIds=(\d+)/;
   const PRODUCT_URL_ORIGIN = 'https://www.aliexpress.com';
-  const PROCESSED_ATTR = 'data-jto-processed';
+  const PROCESSED_ATTR = 'data-jtou-processed';
 
   // Inject styles once
   document.head.appendChild(Object.assign(document.createElement('style'), {
     textContent: `
-      .jto-link {
+      .jtou-link {
         color:#dd22cc !important;
         cursor:pointer;
         display:block;
@@ -42,7 +42,7 @@
         text-overflow:ellipsis;
         white-space:nowrap;
       }
-      .jto-bundle-row .jto-link {
+      .jtou-bundle-row .jtou-link {
         display:inline-block;
         flex:1;
         font-size:14px !important;
@@ -51,8 +51,8 @@
         margin-top:0;
         min-width:0;
       }
-      .jto-link:hover { color:#007700 !important; text-decoration:underline !important; }
-      .jto-link>span { color:inherit !important; font:inherit !important; }
+      .jtou-link:hover { color:#007700 !important; text-decoration:underline !important; }
+      .jtou-link>span { color:inherit !important; font:inherit !important; }
     `
   }));
 
@@ -69,7 +69,7 @@
   function makeLink(url) {
     const a = document.createElement('a');
     a.href = url;
-    a.className = 'jto-link';
+    a.className = 'jtou-link';
     a.innerHTML = '<span>✳️ Just this one!</span>';
     a.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -116,11 +116,11 @@
       if (!productUrl) continue;
 
       const card = anchor.closest('.card-out-wrapper') || anchor.parentElement;
-      if (!card || card.querySelector('.jto-link')) continue;
+      if (!card || card.querySelector('.jtou-link')) continue;
 
       const bundleRow = anchor.querySelector('.comet-icon')?.parentElement;
       if (bundleRow) {
-        bundleRow.classList.add('jto-bundle-row');
+        bundleRow.classList.add('jtou-bundle-row');
         bundleRow.appendChild(makeLink(productUrl));
       } else {
         anchor.after(makeLink(productUrl));
@@ -133,7 +133,7 @@
     if (!location.pathname.includes('/p/wish-manage/')) return;
 
     for (const card of $("[class|='productCardV2--productCard']")) {
-      if (card.querySelector('.jto-link')) continue;
+      if (card.querySelector('.jtou-link')) continue;
 
       const dataId = card.querySelector("[class|='operator--operator']")?.getAttribute('data-id');
       const productId = dataId?.match(/^operator_(\d+)/)?.[1];
@@ -159,7 +159,7 @@
       if (isProcessed(container)) continue;
       const parentId = container.parentNode?.id;
       if (!parentId?.includes('info_container.')) continue;
-      if (container.parentElement.querySelector('.jto-link')) continue;
+      if (container.parentElement.querySelector('.jtou-link')) continue;
 
       const productId = parentId.split('info_container.')[1];
       if (!productId) continue;
