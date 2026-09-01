@@ -20,8 +20,7 @@
 (function () {
   'use strict';
 
-  const ALIEXPRESS_ORIGIN_RE = /^(https?:)?\/\/[^/]*aliexpress\.(?:com|us|ru)/;
-  const PRODUCT_ID_RE = /[?&]productIds=(\d+)/;
+  const ALIEXPRESS_HOST_RE = /(?:^|\.)aliexpress\.(?:com|us|ru)$/i;
   const PRODUCT_URL_ORIGIN = 'https://www.aliexpress.com';
   const PROCESSED_ATTR = 'data-jtou-processed';
 
@@ -85,13 +84,22 @@
     return a;
   }
 
-  function getProductUrlFromBundleUrl(url) {
-    const origin = url.match(ALIEXPRESS_ORIGIN_RE)?.[0];
-    const productId = url.match(PRODUCT_ID_RE)?.[1];
+  function getProductUrlFromBundleUrl(rawUrl) {
+    let url;
 
-    if (!origin || !productId) return null;
+    try {
+      url = new URL(rawUrl, location.href);
+    } catch {
+      return null;
+    }
 
-    return makeProductUrl(productId, origin);
+    if (!ALIEXPRESS_HOST_RE.test(url.hostname)) return null;
+
+    const productId = url.searchParams.get('productIds')?.match(/^\d+/)?.[0];
+
+    if (!productId) return null;
+
+    return makeProductUrl(productId, url.origin);
   }
 
   function makeProductUrl(productId, origin = PRODUCT_URL_ORIGIN) {
