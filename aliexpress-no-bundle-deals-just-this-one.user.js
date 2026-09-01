@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Skip AliExpress Bundle Deals: Just This One!
 // @namespace    https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one
-// @version      1.0.5
+// @version      1.0.6
 // @license      MIT
 // @homepageURL  https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one
 // @supportURL   https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/issues
+// @downloadURL  https://raw.githubusercontent.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/main/aliexpress-no-bundle-deals-just-this-one.user.js
+// @updateURL    https://raw.githubusercontent.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/main/aliexpress-no-bundle-deals-just-this-one.user.js
 // @description  Skip those bundles and buy just the product you want on AliExpress.
 // @match        https://*.aliexpress.com/*
 // @match        https://aliexpress.com/*

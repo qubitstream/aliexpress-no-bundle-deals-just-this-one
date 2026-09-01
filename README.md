@@ -28,7 +28,7 @@ Clicking a **"Just this one!"** link opens the individual product page in a new 
     - [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Firefox, Edge, Safari)
     - [Greasemonkey](https://www.greasespot.net/) (Firefox)
     - [Violentmonkey](https://violentmonkey.github.io/) (Chrome, Firefox, Edge)
-2. Open [`aliexpress-no-bundle-deals-just-this-one.user.js`](https://github.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/blob/main/aliexpress-no-bundle-deals-just-this-one.user.js) and click **Install**.
+2. Open the [raw userscript](https://raw.githubusercontent.com/qubitstream/aliexpress-no-bundle-deals-just-this-one/main/aliexpress-no-bundle-deals-just-this-one.user.js) and confirm the installation in your userscript manager.
 3. Refresh any open AliExpress tabs.
 
 ### Chrome setup
